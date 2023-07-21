@@ -4,10 +4,14 @@ import { useState } from "react";
 import { OutTable, ExcelRenderer } from "react-excel-renderer";
 import PizZip from "pizzip";
 import { DOMParser } from "@xmldom/xmldom";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import { useRef } from "react";
 
 // import { read, utils, writeFile } from "xlsx";
 
 function App() {
+  const pdfref = useRef();
   const docs = [
     { uri: "../src/assets/test.pdf", fileType: "pdf", fileName: "test.pdf" },
 
@@ -89,19 +93,53 @@ function App() {
     }
     return new DOMParser().parseFromString(str, "text/xml");
   };
+  const DownloaPdf = () => {
+    const input = pdfref.current;
+    html2canvas(input).then((canvas) => {
+      const ImgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [210, 297],
+      });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const ImgWidth = canvas.width;
+      const ImgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / ImgWidth, pdfHeight / ImgHeight);
+      const ImgX = (pdfWidth - ImgWidth * ratio) / 2;
+      const ImgY = 30;
+      pdf.addImage(
+        ImgData,
+        "PNG",
+        ImgX,
+        ImgY,
+        ImgWidth * ratio,
+        ImgHeight * ratio
+      );
+      pdf.save("File.pdf");
+    });
+    try {
+      html2canvas((input) => {
+        const ImgData = canvas.toDataURL("img/png");
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <>
-      <div className="container content">
+      <div className="container content" ref={pdfref}>
         <h1>React Editor</h1>
         {/* <DocViewer pluginRenderers={DocViewerRenderers} documents={file1} /> */}
         <DocViewer
           documents={docs}
           pluginRenderers={DocViewerRenderers}
-          style={{ height: 100 }}
+          style={{ height: 1000 }}
         />
 
-        {/* <input type="file" onChange={HandleChange} /> */}
+        <input type="file" onChange={HandleChange} />
 
         {Data.length > 0 && (
           <table>
@@ -132,6 +170,10 @@ function App() {
             <p className="text-wrap m-3 p-2">{paragraphText}</p>
           </div>
         </div>
+        <button className="btn btn-lg btn-primary" onClick={DownloaPdf}>
+          {" "}
+          Download
+        </button>
       </div>
     </>
   );
